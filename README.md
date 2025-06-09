@@ -2,7 +2,7 @@
 
 ## Azure CosmosDB for MongoDB (vCore) Support
 
-This fork implements support for Azure CosmosDB for MongoDB (vCore) as a storage backend for LightRAG. The implementation leverages CosmosDB's native vector search capabilities using DiskANN instead of traditional KNN and IVF approaches.
+This fork implements support for Azure CosmosDB for MongoDB (vCore) as a storage backend for LightRAG. The implementation leverages CosmosDB's native vector search capabilities using HNSW instead of traditional KNN and IVF approaches.
 
 ### Requirements
 
@@ -16,19 +16,19 @@ This fork implements support for Azure CosmosDB for MongoDB (vCore) as a storage
 
 ### Features
 
-- Native vector search using CosmosDB's DiskANN implementation
+- Native vector search using CosmosDB's HNSW implementation
 - Asynchronous operations for better performance
 - Connection pooling and resource management
 - Configurable timeout settings for large document processing
 
 ### Results (so far)
 - Successfully indexed and queried documents with vector search
-- TTFT for DiskANN is slightly faster than IVF. But will create a separate branch for the IVF version which allows M30 and below tiers to make use of LightRAG. (but this really might be cuz the other is a lower tier)
+- TTFT for HNSW is slightly faster than IVF. But will create a separate branch for the IVF version which allows M30 and below tiers to make use of LightRAG. (but this really might be cuz the other is a lower tier)
 
 ### Limitations
 
 - Requires CosmosDB tier M30 or above due to vector search capabilities
-- DiskANN implementation may have different performance characteristics compared to traditional KNN/IVF approaches
+- HNSW implementation may have different performance characteristics compared to traditional KNN/IVF approaches
 - Connection timeout may need adjustment based on document sizes and processing requirements
 
 ### Issues
