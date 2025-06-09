@@ -50,7 +50,7 @@ class ClientManager:
                     config.get(
                         "mongodb",
                         "uri",
-                        fallback="mongodb://localhost:27017",
+                        fallback="mongodb://root:root@localhost:27017/",
                     ),
                 )
                 database_name = os.environ.get(
@@ -1026,7 +1026,7 @@ class AzureCosmosMongoVectorDBStorage(BaseVectorStorage):
             self._data = None
 
     async def create_vector_index_if_not_exists(self):
-        """Creates a Vector Search index using DiskANN."""
+        """Creates a Vector Search index using IVF."""
         try:
             index_name = "vector_knn_index"
 
@@ -1037,7 +1037,7 @@ class AzureCosmosMongoVectorDBStorage(BaseVectorStorage):
                     logger.debug("vector index already exists")
                     return
 
-            # Create the vector index using HNSW
+            # Create the vector index
             await self.db.command(
                 {
                     "createIndexes": self._collection_name,
@@ -1046,9 +1046,8 @@ class AzureCosmosMongoVectorDBStorage(BaseVectorStorage):
                             "name": index_name,
                             "key": {"vector": "cosmosSearch"},
                             "cosmosSearchOptions": {
-                                "kind": "vector-hnsw",
-                                "m": 16,
-                                "efConstruction": 64,
+                                "kind": "vector-ivf",
+                                "numLists": 100,
                                 "similarity": "COS",
                                 "dimensions": self.embedding_func.embedding_dim,
                             },
@@ -1056,7 +1055,7 @@ class AzureCosmosMongoVectorDBStorage(BaseVectorStorage):
                     ],
                 }
             )
-            logger.info("Vector index created successfully using DiskANN.")
+            logger.info("Vector index created successfully.")
 
         except PyMongoError as e:
             logger.error(f"Error creating vector index: {str(e)}")
@@ -1065,7 +1064,7 @@ class AzureCosmosMongoVectorDBStorage(BaseVectorStorage):
     async def query(
         self, query: str, top_k: int, ids: list[str] | None = None
     ) -> list[dict[str, Any]]:
-        """Queries the vector database using Vector Search with DiskANN."""
+        """Queries the vector database using Vector Search."""
         # Generate the embedding
         embedding = await self.embedding_func(
             [query], _priority=5
@@ -1082,7 +1081,6 @@ class AzureCosmosMongoVectorDBStorage(BaseVectorStorage):
                         "vector": query_vector,
                         "path": "vector",
                         "k": top_k,
-                        "efSearch": 40,  # DiskANN specific parameter for search accuracy
                     },
                     "returnStoredSource": True,
                 }
