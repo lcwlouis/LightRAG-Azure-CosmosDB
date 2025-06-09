@@ -31,7 +31,6 @@ from motor.motor_asyncio import (  # type: ignore
     AsyncIOMotorDatabase,
     AsyncIOMotorCollection,
 )
-from pymongo.operations import SearchIndexModel  # type: ignore
 from pymongo.errors import PyMongoError  # type: ignore
 
 config = configparser.ConfigParser()
@@ -58,15 +57,14 @@ class ClientManager:
                     "COSMOS_MONGO_DATABASE",
                     config.get("mongodb", "database", fallback="LightRAG"),
                 )
-                connect_timeout_ms = int(os.environ.get(
-                    "COSMOS_MONGO_CONNECT_TIMEOUT_MS",
-                    config.get("mongodb", "connect_timeout_ms", fallback=20000)
-                ))
-                
-                client = AsyncIOMotorClient(
-                    uri,
-                    connectTimeoutMS=connect_timeout_ms
+                connect_timeout_ms = int(
+                    os.environ.get(
+                        "COSMOS_MONGO_CONNECT_TIMEOUT_MS",
+                        config.get("mongodb", "connect_timeout_ms", fallback=20000),
+                    )
                 )
+
+                client = AsyncIOMotorClient(uri, connectTimeoutMS=connect_timeout_ms)
                 db = client.get_database(database_name)
                 cls._instances["db"] = db
                 cls._instances["ref_count"] = 0
@@ -96,7 +94,9 @@ class AzureCosmosMongoKVStorage(BaseKVStorage):
         if self.db is None:
             self.db = await ClientManager.get_client()
             self._data = await get_or_create_collection(self.db, self._collection_name)
-            logger.debug(f"Use Azure Cosmos DB for MongoDB vCore as KV {self._collection_name}")
+            logger.debug(
+                f"Use Azure Cosmos DB for MongoDB vCore as KV {self._collection_name}"
+            )
 
     async def finalize(self):
         if self.db is not None:
@@ -233,7 +233,9 @@ class AzureCosmosMongoDocStatusStorage(DocStatusStorage):
         if self.db is None:
             self.db = await ClientManager.get_client()
             self._data = await get_or_create_collection(self.db, self._collection_name)
-            logger.debug(f"Use Azure Cosmos DB for MongoDB vCore as DocStatus {self._collection_name}")
+            logger.debug(
+                f"Use Azure Cosmos DB for MongoDB vCore as DocStatus {self._collection_name}"
+            )
 
     async def finalize(self):
         if self.db is not None:
@@ -362,7 +364,9 @@ class AzureCosmosMongoGraphStorage(BaseGraphStorage):
             self.collection = await get_or_create_collection(
                 self.db, self._collection_name
             )
-            logger.debug(f"Use Azure Cosmos DB for MongoDB vCore as KG {self._collection_name}")
+            logger.debug(
+                f"Use Azure Cosmos DB for MongoDB vCore as KG {self._collection_name}"
+            )
 
     async def finalize(self):
         if self.db is not None:
@@ -739,47 +743,43 @@ class AzureCosmosMongoGraphStorage(BaseGraphStorage):
             if node_label == "*":
                 # First check total node count to determine if graph should be truncated
                 count_pipeline = [{"$count": "total_nodes"}]
-                count_result = await self.collection.aggregate(count_pipeline).to_list(length=1)
+                count_result = await self.collection.aggregate(count_pipeline).to_list(
+                    length=1
+                )
                 total_nodes = count_result[0]["total_nodes"] if count_result else 0
                 is_truncated = total_nodes > max_nodes
 
                 # Get nodes with highest degrees
                 pipeline = [
-                    {
-                        "$addFields": {
-                            "degree": {"$size": "$edges"}
-                        }
-                    },
-                    {
-                        "$sort": {"degree": -1}
-                    },
-                    {
-                        "$limit": max_nodes
-                    }
+                    {"$addFields": {"degree": {"$size": "$edges"}}},
+                    {"$sort": {"degree": -1}},
+                    {"$limit": max_nodes},
                 ]
-                node_results = await self.collection.aggregate(pipeline).to_list(length=None)
+                node_results = await self.collection.aggregate(pipeline).to_list(
+                    length=None
+                )
                 node_ids = [str(result["_id"]) for result in node_results]
 
-                logger.info(f"Total nodes: {total_nodes}, Selected nodes: {len(node_ids)}")
+                logger.info(
+                    f"Total nodes: {total_nodes}, Selected nodes: {len(node_ids)}"
+                )
 
                 if node_ids:
                     # Get all edges between selected nodes
                     pipeline = [
-                        {
-                            "$match": {
-                                "_id": {"$in": node_ids}
-                            }
-                        },
+                        {"$match": {"_id": {"$in": node_ids}}},
                         {
                             "$lookup": {
                                 "from": self._collection_name,
                                 "localField": "edges.target",
                                 "foreignField": "_id",
-                                "as": "connected_nodes"
+                                "as": "connected_nodes",
                             }
-                        }
+                        },
                     ]
-                    results = await self.collection.aggregate(pipeline).to_list(length=None)
+                    results = await self.collection.aggregate(pipeline).to_list(
+                        length=None
+                    )
 
                     # Process nodes and edges
                     for doc in results:
@@ -801,7 +801,10 @@ class AzureCosmosMongoGraphStorage(BaseGraphStorage):
                             # Process edges
                             for edge in doc.get("edges", []):
                                 edge_id = f"{node_id}-{edge['target']}"
-                                if edge_id not in seen_edges and edge["target"] in node_ids:
+                                if (
+                                    edge_id not in seen_edges
+                                    and edge["target"] in node_ids
+                                ):
                                     result.edges.append(
                                         KnowledgeGraphEdge(
                                             id=edge_id,
@@ -821,9 +824,7 @@ class AzureCosmosMongoGraphStorage(BaseGraphStorage):
             else:
                 # For specific node query, use $graphLookup
                 pipeline = [
-                    {
-                        "$match": {"_id": node_label}
-                    },
+                    {"$match": {"_id": node_label}},
                     {
                         "$graphLookup": {
                             "from": self._collection_name,
@@ -834,7 +835,7 @@ class AzureCosmosMongoGraphStorage(BaseGraphStorage):
                             "depthField": "depth",
                             "as": "connected_nodes",
                         }
-                    }
+                    },
                 ]
 
                 async for doc in self.collection.aggregate(pipeline):
@@ -848,7 +849,8 @@ class AzureCosmosMongoGraphStorage(BaseGraphStorage):
                                 properties={
                                     k: v
                                     for k, v in doc.items()
-                                    if k not in ["_id", "edges", "connected_nodes", "depth"]
+                                    if k
+                                    not in ["_id", "edges", "connected_nodes", "depth"]
                                 },
                             )
                         )
@@ -1013,7 +1015,9 @@ class AzureCosmosMongoVectorDBStorage(BaseVectorStorage):
             # Ensure vector index exists
             await self.create_vector_index_if_not_exists()
 
-            logger.debug(f"Use Azure Cosmos DB for MongoDB vCore as VDB {self._collection_name}")
+            logger.debug(
+                f"Use Azure Cosmos DB for MongoDB vCore as VDB {self._collection_name}"
+            )
 
     async def finalize(self):
         if self.db is not None:
@@ -1034,26 +1038,26 @@ class AzureCosmosMongoVectorDBStorage(BaseVectorStorage):
                     return
 
             # Create the vector index using HNSW
-            await self.db.command({
-                "createIndexes": self._collection_name,
-                "indexes": [
-                    {
-                        "name": index_name,
-                        "key": {
-                            "vector": "cosmosSearch"
-                        },
-                        "cosmosSearchOptions": {
-                            "kind": "vector-hnsw",
-                            "m": 16,
-                            "efConstruction": 64,
-                            "similarity": "COS",
-                            "dimensions": self.embedding_func.embedding_dim
+            await self.db.command(
+                {
+                    "createIndexes": self._collection_name,
+                    "indexes": [
+                        {
+                            "name": index_name,
+                            "key": {"vector": "cosmosSearch"},
+                            "cosmosSearchOptions": {
+                                "kind": "vector-hnsw",
+                                "m": 16,
+                                "efConstruction": 64,
+                                "similarity": "COS",
+                                "dimensions": self.embedding_func.embedding_dim,
+                            },
                         }
-                    }
-                ]
-            })
+                    ],
+                }
+            )
             logger.info("Vector index created successfully using DiskANN.")
-            
+
         except PyMongoError as e:
             logger.error(f"Error creating vector index: {str(e)}")
             raise
@@ -1078,19 +1082,23 @@ class AzureCosmosMongoVectorDBStorage(BaseVectorStorage):
                         "vector": query_vector,
                         "path": "vector",
                         "k": top_k,
-                        "efSearch": 40  # DiskANN specific parameter for search accuracy
+                        "efSearch": 40,  # DiskANN specific parameter for search accuracy
                     },
-                    "returnStoredSource": True
+                    "returnStoredSource": True,
                 }
             },
             {
                 "$project": {
-                    "similarityScore": { "$meta": "searchScore" },
-                    "document": "$$ROOT"
+                    "similarityScore": {"$meta": "searchScore"},
+                    "document": "$$ROOT",
                 }
             },
-            {"$match": {"similarityScore": {"$gte": self.cosine_better_than_threshold}}},
-            {"$project": {"vector": 0}}
+            {
+                "$match": {
+                    "similarityScore": {"$gte": self.cosine_better_than_threshold}
+                }
+            },
+            {"$project": {"vector": 0}},
         ]
 
         # Execute the aggregation pipeline
@@ -1265,7 +1273,7 @@ class AzureCosmosMongoVectorDBStorage(BaseVectorStorage):
 
     async def upsert(self, data: dict[str, dict[str, Any]]) -> None:
         """Upsert documents with their vector embeddings into the collection.
-        
+
         Args:
             data: Dictionary mapping document IDs to their data and content
         """
@@ -1288,7 +1296,7 @@ class AzureCosmosMongoVectorDBStorage(BaseVectorStorage):
 
         # Get contents for embedding
         contents = [v["content"] for v in data.values()]
-        
+
         # Process in batches
         batches = [
             contents[i : i + self._max_batch_size]
@@ -1308,11 +1316,7 @@ class AzureCosmosMongoVectorDBStorage(BaseVectorStorage):
         update_tasks = []
         for doc in list_data:
             update_tasks.append(
-                self._data.update_one(
-                    {"_id": doc["_id"]}, 
-                    {"$set": doc}, 
-                    upsert=True
-                )
+                self._data.update_one({"_id": doc["_id"]}, {"$set": doc}, upsert=True)
             )
         await asyncio.gather(*update_tasks)
 
