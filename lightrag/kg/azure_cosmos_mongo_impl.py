@@ -60,7 +60,7 @@ class ClientManager:
                 )
                 connect_timeout_ms = int(os.environ.get(
                     "COSMOS_MONGO_CONNECT_TIMEOUT_MS",
-                    config.get("mongodb", "connect_timeout_ms", fallback=60000)
+                    config.get("mongodb", "connect_timeout_ms", fallback=20000)
                 ))
                 
                 client = AsyncIOMotorClient(
