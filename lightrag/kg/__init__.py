@@ -5,6 +5,7 @@ STORAGE_IMPLEMENTATIONS = {
             "RedisKVStorage",
             "PGKVStorage",
             "MongoKVStorage",
+            "AzureCosmosMongoKVStorage",
             # "TiDBKVStorage",
         ],
         "required_methods": ["get_by_id", "upsert"],
@@ -16,6 +17,7 @@ STORAGE_IMPLEMENTATIONS = {
             "PGGraphStorage",
             # "AGEStorage",
             # "MongoGraphStorage",
+            "AzureCosmosMongoGraphStorage",
             # "TiDBGraphStorage",
             # "GremlinStorage",
         ],
@@ -30,6 +32,7 @@ STORAGE_IMPLEMENTATIONS = {
             "FaissVectorDBStorage",
             "QdrantVectorDBStorage",
             "MongoVectorDBStorage",
+            "AzureCosmosMongoVectorDBStorage",
             # "TiDBVectorDBStorage",
         ],
         "required_methods": ["query", "upsert"],
@@ -39,6 +42,7 @@ STORAGE_IMPLEMENTATIONS = {
             "JsonDocStatusStorage",
             "PGDocStatusStorage",
             "MongoDocStatusStorage",
+            "AzureCosmosMongoDocStatusStorage",
         ],
         "required_methods": ["get_docs_by_status"],
     },
@@ -49,6 +53,7 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     # KV Storage Implementations
     "JsonKVStorage": [],
     "MongoKVStorage": [],
+    "AzureCosmosMongoKVStorage": ["COSMOS_MONGO_URI", "COSMOS_MONGO_DATABASE"],
     "RedisKVStorage": ["REDIS_URI"],
     # "TiDBKVStorage": ["TIDB_USER", "TIDB_PASSWORD", "TIDB_DATABASE"],
     "PGKVStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
@@ -56,6 +61,7 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     "NetworkXStorage": [],
     "Neo4JStorage": ["NEO4J_URI", "NEO4J_USERNAME", "NEO4J_PASSWORD"],
     "MongoGraphStorage": [],
+    "AzureCosmosMongoGraphStorage": ["COSMOS_MONGO_URI", "COSMOS_MONGO_DATABASE"],
     # "TiDBGraphStorage": ["TIDB_USER", "TIDB_PASSWORD", "TIDB_DATABASE"],
     "AGEStorage": [
         "AGE_POSTGRES_DB",
@@ -77,10 +83,12 @@ STORAGE_ENV_REQUIREMENTS: dict[str, list[str]] = {
     "FaissVectorDBStorage": [],
     "QdrantVectorDBStorage": ["QDRANT_URL"],  # QDRANT_API_KEY has default value None
     "MongoVectorDBStorage": [],
+    "AzureCosmosMongoVectorDBStorage": ["COSMOS_MONGO_URI", "COSMOS_MONGO_DATABASE"],
     # Document Status Storage Implementations
     "JsonDocStatusStorage": [],
     "PGDocStatusStorage": ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DATABASE"],
     "MongoDocStatusStorage": [],
+    "AzureCosmosMongoDocStatusStorage": ["COSMOS_MONGO_URI", "COSMOS_MONGO_DATABASE"],
 }
 
 # Storage implementation module mapping
@@ -95,6 +103,10 @@ STORAGES = {
     "MongoDocStatusStorage": ".kg.mongo_impl",
     "MongoGraphStorage": ".kg.mongo_impl",
     "MongoVectorDBStorage": ".kg.mongo_impl",
+    "AzureCosmosMongoKVStorage": ".kg.azure_cosmos_mongo_impl",
+    "AzureCosmosMongoDocStatusStorage": ".kg.azure_cosmos_mongo_impl",
+    "AzureCosmosMongoGraphStorage": ".kg.azure_cosmos_mongo_impl",
+    "AzureCosmosMongoVectorDBStorage": ".kg.azure_cosmos_mongo_impl",
     "RedisKVStorage": ".kg.redis_impl",
     "ChromaVectorDBStorage": ".kg.chroma_impl",
     # "TiDBKVStorage": ".kg.tidb_impl",
